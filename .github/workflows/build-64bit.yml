@@ -1,0 +1,63 @@
+name: Build CE 64-bit (forced)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+
+concurrency:
+  group: build-64bit
+  cancel-in-progress: true
+
+jobs:
+  build-win64:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Lazarus (64-bit)
+        uses: gcarreno/setup-lazarus@v3
+        with:
+          lazarus-version: "2.2.6"
+          with-cache: true
+
+      - name: Show toolchain versions
+        shell: pwsh
+        run: |
+          lazbuild --version
+          fpc -iV
+          fpc -iTO
+
+      - name: Clean previous build outputs (force a full rebuild)
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force "Cheat Engine\lib" -ErrorAction SilentlyContinue
+          Remove-Item -Path "Cheat Engine\bin\cheatengine-x86_64.exe","Cheat Engine\bin\cheatengine-x86_64.exe.dbg" -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Recurse -Filter "*.compiled" "Cheat Engine\lib" -ErrorAction SilentlyContinue | Remove-Item -Force
+
+      - name: Build Cheat Engine (Release 64-Bit)
+        shell: pwsh
+        run: |
+          lazbuild -B --bm="Release 64-Bit" "Cheat Engine\cheatengine.lpi"
+
+      - name: List build outputs
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse "Cheat Engine\bin" -ErrorAction SilentlyContinue | Select-Object FullName, Length
+
+      - name: Upload x64 binary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheatengine-x86_64
+          path: |
+            Cheat Engine\bin\cheatengine-x86_64.exe
+            Cheat Engine\bin\cheatengine-x86_64.exe.dbg
+            Cheat Engine\bin\cheatengine-x86_64.xml
+          if-no-files-found: warn

@@ -22,7 +22,7 @@ procedure initializeLuaThread;
 
 implementation
 
-uses LuaClass, LuaObject;
+uses LuaClass, LuaObject, hotkeyhandler;
 
 resourcestring
   rsErrorInNativeThreadCalled = 'Error in thread called ';

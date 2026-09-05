@@ -99,6 +99,12 @@ var hotkeythread: THotkeythread;
     //of a hotkey action, which would steal the focus from the game.
     InHotkeyCallback: boolean = false;
 
+    //True while a Lua worker thread is dispatching work to the main thread
+    //(e.g. the MCP bridge's thread.synchronize). Code that would normally
+    //activate CE's windows (like Lua print's show-on-print) checks this so a
+    //remote/pipe command does not steal the focus from the game.
+    InSynchronizedCallback: boolean = false;
+
 const WM_HOTKEY2=$8000;
 
 

@@ -61,6 +61,8 @@ var
   paramcount: integer;
   i: integer;
 begin
+  InSynchronizedCallback:=true;
+  try
   //call the lua function
   lua_rawgeti(L, LUA_REGISTRYINDEX, syncfunction);
   luaclass_newclass(L, self);
@@ -82,6 +84,9 @@ begin
   end;
 
   lua_pcall(L, paramcount,1,0);
+  finally
+    InSynchronizedCallback:=false;
+  end;
 end;
 
 procedure TCEThread.setname(newname: string);

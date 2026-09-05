@@ -381,7 +381,7 @@ begin
 
         printoutput.AddText(rsError+error);
 
-        if (frmLuaEngine<>nil) and usesluaengineform and (frmLuaEngine.cbShowOnPrint.checked) and ((not InHotkeyCallback) or FocusOnHotkey) then
+        if (frmLuaEngine<>nil) and usesluaengineform and (frmLuaEngine.cbShowOnPrint.checked) and (((not InHotkeyCallback) and (not InSynchronizedCallback)) or (InHotkeyCallback and FocusOnHotkey)) then
           frmLuaEngine.show;
 
         if usesluaengineform then
@@ -1518,7 +1518,7 @@ begin
 
   l.free;
 
-  if (frmLuaEngine<>nil) and usesluaengineform and (frmLuaEngine.cbShowOnPrint.checked) and ((not InHotkeyCallback) or FocusOnHotkey) then
+  if (frmLuaEngine<>nil) and usesluaengineform and (frmLuaEngine.cbShowOnPrint.checked) and (((not InHotkeyCallback) and (not InSynchronizedCallback)) or (InHotkeyCallback and FocusOnHotkey)) then
     frmLuaEngine.show;
 
   if usesluaengineform then

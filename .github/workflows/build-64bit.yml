@@ -51,13 +51,37 @@ jobs:
         run: |
           Get-ChildItem -Recurse "Cheat Engine\bin" -ErrorAction SilentlyContinue | Select-Object FullName, Length
 
-      - name: Upload x64 binary
+      - name: Smoke test (start the exe, make sure it stays alive)
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD "Cheat Engine\bin\cheatengine-x86_64.exe"
+          if (-not (Test-Path $exe)) { throw "built exe not found: $exe" }
+
+          $p = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -ArgumentList "NOAUTORUN" -PassThru
+          Start-Sleep -Seconds 15
+
+          if ($p.HasExited) {
+            throw "Cheat Engine exited during startup with code $($p.ExitCode) -- not runnable"
+          }
+
+          Write-Host "Cheat Engine started successfully (PID $($p.Id))"
+          Get-Process -Id $p.Id | Select-Object Id, ProcessName, Responding
+
+          # close it (also try to kill the process tree so the job can finish)
+          $null = $p.CloseMainWindow()
+          Start-Sleep -Seconds 2
+          if (-not $p.HasExited) { $p.Kill($true) }
+
+      - name: Stage portable package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifact\cheatengine" | Out-Null
+          Get-ChildItem "Cheat Engine\bin" | Copy-Item -Destination "artifact\cheatengine" -Recurse -Force
+
+      - name: Upload portable x64 package
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: cheatengine-x86_64
-          path: |
-            Cheat Engine\bin\cheatengine-x86_64.exe
-            Cheat Engine\bin\cheatengine-x86_64.exe.dbg
-            Cheat Engine\bin\cheatengine-x86_64.xml
-          if-no-files-found: warn
+          name: cheatengine-bin-win64
+          path: artifact\cheatengine\
+          if-no-files-found: error

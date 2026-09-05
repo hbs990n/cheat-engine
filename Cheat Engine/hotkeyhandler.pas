@@ -89,6 +89,16 @@ var hotkeythread: THotkeythread;
     hotkeyPollInterval: integer=100;
     hotkeyIdletime: integer=100;
 
+    //When FocusOnHotkey is false (the default) hotkey triggered actions are NOT allowed to
+    //activate or bring CE's windows to the foreground, so the game keeps the focus.
+    //Set it from Options->Hotkeys; 'Focus on hotkey' can re-enable the old behaviour.
+    FocusOnHotkey: boolean = false;
+
+    //True while a hotkey callback is executing on the main thread.
+    //Other code (e.g. Lua print) uses this to avoid activating a window in the middle
+    //of a hotkey action, which would steal the focus from the game.
+    InHotkeyCallback: boolean = false;
+
 const WM_HOTKEY2=$8000;
 
 
@@ -615,7 +625,12 @@ begin
 
   //not 100% sure why sendmessage works here but not from within the thread...
   //but since we're here anyhow:
-  TMemoryRecordHotkey(memrechk).DoHotkey;
+  InHotkeyCallback:=true;
+  try
+    TMemoryRecordHotkey(memrechk).DoHotkey;
+  finally
+    InHotkeyCallback:=false;
+  end;
 end;
 
 procedure Thotkeythread.memrechotkeydisable;
@@ -624,18 +639,33 @@ begin
 
   //not 100% sure why sendmessage works here but not from within the thread...
   //but since we're here anyhow:
-  TMemoryRecordHotkey(memrechk).DoHotkeyDisable;
+  InHotkeyCallback:=true;
+  try
+    TMemoryRecordHotkey(memrechk).DoHotkeyDisable;
+  finally
+    InHotkeyCallback:=false;
+  end;
 end;
 
 procedure Thotkeythread.handleGenericHotkey;
 begin
-  if assigned(generichk.onNotify) then
-    generichk.onNotify(generichk);
+  InHotkeyCallback:=true;
+  try
+    if assigned(generichk.onNotify) then
+      generichk.onNotify(generichk);
+  finally
+    InHotkeyCallback:=false;
+  end;
 end;
 
 procedure THotkeythread.mainformhotkey2;
 begin
-  mainform.hotkey2(mainformhotkey2command);
+  InHotkeyCallback:=true;
+  try
+    mainform.hotkey2(mainformhotkey2command);
+  finally
+    InHotkeyCallback:=false;
+  end;
 end;
 
 procedure THotkeyThread.execute;

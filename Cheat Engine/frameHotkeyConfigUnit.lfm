@@ -348,6 +348,19 @@ object frameHotkeyConfig: TframeHotkeyConfig
       OnClick = btnExcludeProcessesClick
       TabOrder = 4
     end
+    object cbFocusOnHotkey: TCheckBox
+      AnchorSideLeft.Control = Panel5
+      AnchorSideTop.Control = cbHideAllWindows
+      AnchorSideTop.Side = asrBottom
+      Left = 2
+      Height = 19
+      Top = 92
+      Width = 470
+      BorderSpacing.Left = 2
+      BorderSpacing.Top = 2
+      Caption = 'Activate Cheat Engine on hotkeys (leave unchecked to keep focus on the game)'
+      TabOrder = 5
+    end
   end
   object PopupMenu1: TPopupMenu
     Images = fhcImageList

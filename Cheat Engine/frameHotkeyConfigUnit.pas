@@ -23,6 +23,7 @@ type
   TframeHotkeyConfig = class(TFrame)
     btnExcludeProcesses: TButton;
     cbCenterOnPopup: TCheckBox;
+    cbFocusOnHotkey: TCheckBox;
     cbHideAllWindows: TCheckBox;
     cbStopOnRelease: TCheckBox;
     fhcImageList: TImageList;

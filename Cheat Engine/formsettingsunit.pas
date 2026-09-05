@@ -810,6 +810,9 @@ begin
           raise exception.Create(Format(rsTheValueForTheWaitBetweenHotkeyPressesIsInvalid, [frameHotkeyConfig.edtHotkeyDelay.text]));
         end;
 
+        reg.WriteBool('Focus on hotkey',frameHotkeyConfig.cbFocusOnHotkey.checked);
+        FocusOnHotkey:=frameHotkeyConfig.cbFocusOnHotkey.checked;
+
 
 
 

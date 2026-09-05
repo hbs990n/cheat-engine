@@ -1626,7 +1626,9 @@ begin
 
           if not allwindowsareback then
           begin
-            application.BringToFront;
+            if FocusOnHotkey then
+              application.BringToFront;
+
             if CurrentThreadID<>OtherThreadID then
             begin
               SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, @lockTimeOut, 0);
@@ -1634,16 +1636,20 @@ begin
             end;
           end
           else
-            setforegroundwindow(lastforeground);
+            if FocusOnHotkey then
+              setforegroundwindow(lastforeground);
 
           adjustbringtofronttext;
           exit;
         end;
 
-        application.BringToFront;
-        SetForegroundWindow(mainform.Handle);
+        if FocusOnHotkey then
+        begin
+          application.BringToFront;
+          SetForegroundWindow(mainform.Handle);
 
-        mainform.SetFocus;
+          mainform.SetFocus;
+        end;
 
         if CurrentThreadID<>OtherThreadID then
         begin
@@ -2110,10 +2116,14 @@ begin
               2), mainform.Width, mainform.Height, SWP_NOZORDER or SWP_NOACTIVATE);
 
         if not allwindowsareback then
-          application.BringToFront
+        begin
+          if FocusOnHotkey then
+            application.BringToFront;
+        end
         else
         begin
-          setforegroundwindow(lastforeground);
+          if FocusOnHotkey then
+            setforegroundwindow(lastforeground);
           //   setactivewindow(lastactive);
         end;
 
@@ -2123,7 +2133,8 @@ begin
 
 
       // if length(windowlist)<>0 then
-      application.BringToFront;
+      if FocusOnHotkey then
+        application.BringToFront;
 
       if formsettings.frameHotkeyConfig.cbCenterOnPopup.Checked then
         setwindowpos(mainform.Handle, HWND_NOTOPMOST, (screen.Width div 2) -

@@ -812,6 +812,11 @@ begin
           if reg.ValueExists('Hide all windows') then
             frameHotkeyConfig.cbHideAllWindows.Checked:=reg.ReadBool('Hide all windows');
 
+          if reg.ValueExists('Focus on hotkey') then
+            frameHotkeyConfig.cbFocusOnHotkey.Checked:=reg.ReadBool('Focus on hotkey');
+
+          FocusOnHotkey:=frameHotkeyConfig.cbFocusOnHotkey.checked;
+
           if reg.ValueExists('Really hide all windows') then
             temphideall:=reg.ReadBool('Really hide all windows');
             

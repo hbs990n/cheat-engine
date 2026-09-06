@@ -3457,6 +3457,7 @@ function lua_synchronize(L: Plua_State): integer; cdecl;
 var lc: TLuaCaller;
   f: integer;
   routine: string;
+  wasInSynchronizedCallback: boolean;
 begin
   result:=0;
   lc:=nil;
@@ -3487,7 +3488,13 @@ begin
     else
       lc.synchronizeparam:=0;
 
-    tthread.Synchronize(nil, lc.synchronize);
+    wasInSynchronizedCallback:=InSynchronizedCallback;
+    InSynchronizedCallback:=true;
+    try
+      tthread.Synchronize(nil, lc.synchronize);
+    finally
+      InSynchronizedCallback:=wasInSynchronizedCallback;
+    end;
 
     result:=1;
   end;

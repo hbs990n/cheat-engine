@@ -383,7 +383,7 @@ begin
 
   try
     if (currentbp<>nil) and (assigned(currentbp.OnBreakpoint)) then
-      WaitingToContinue:=currentbp.OnBreakpoint(currentbp, context)
+      WaitingToContinue:=not currentbp.OnBreakpoint(currentbp, context)
     else
       WaitingToContinue:=not lua_onBreakpoint(Self.ThreadId, context);
 

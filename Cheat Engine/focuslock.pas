@@ -37,7 +37,7 @@ const
 type
   TFocusLockHelper = class
   public
-    procedure FormAdded(Form: TCustomForm);
+    procedure FormAdded(Sender: TObject; Form: TCustomForm);
   end;
 
 var
@@ -97,7 +97,7 @@ begin
     ClearFromAllForms;
 end;
 
-procedure TFocusLockHelper.FormAdded(Form: TCustomForm);
+procedure TFocusLockHelper.FormAdded(Sender: TObject; Form: TCustomForm);
 begin
   if NoFocusSteal then
     ApplyNoActivate(Form);

@@ -4,6 +4,10 @@ unit focuslock;
 // WS_EX_NOACTIVATE so it can never become (or steal) the foreground
 // window - no matter how it is shown. CE can be viewed but not
 // keyboard-activated while the mode is on. Press F12 again to unlock.
+//
+// The F12 hotkey is registered on a hidden WinAPI-only message window
+// (no LCL Application.OnMessage dependency), so it works globally and is
+// independent of the LCL message routing.
 
 {$MODE Delphi}
 
@@ -19,16 +23,16 @@ function IsFocusLockOn: boolean;
 implementation
 
 uses
-  Windows, LCLType;
+  Windows;
 
 const
   FocusLockHotkeyID = $B0C0;
   FocusLockHotkey = $7B;                    //VK_F12
   FocusLockModNoRepeat = $4000;             //MOD_NOREPEAT
   FocusLockMinToggleInterval = 250;         //ms debounce
+  FocusLockWindowClassName: PChar = 'CEFocusLockWindow';
   cWS_EX_NOACTIVATE = $08000000;
   cGWL_EXSTYLE = -20;
-  cWM_HOTKEY = $0312;
 
 type
   TFocusLockHelper = class
@@ -39,10 +43,10 @@ type
 var
   NoFocusSteal: boolean = false;
   Helper: TFocusLockHelper;
+  FocusLockWindow: HWND = 0;
   HotkeyRegistered: boolean = false;
-  MessageHookInstalled: boolean = false;
-  OldOnMessage: TMessageEvent;
-  LastToggleTick: QWord = 0;
+  WindowClassRegistered: boolean = false;
+  LastToggleTick: DWORD = 0;
 
 procedure ApplyNoActivate(Form: TCustomForm);
 var ex: longint;
@@ -67,6 +71,8 @@ end;
 procedure ApplyToAllForms;
 var i: integer;
 begin
+  if Screen=nil then exit;
+
   for i:=0 to Screen.FormCount-1 do
     ApplyNoActivate(Screen.Forms[i]);
 end;
@@ -74,6 +80,8 @@ end;
 procedure ClearFromAllForms;
 var i: integer;
 begin
+  if Screen=nil then exit;
+
   for i:=0 to Screen.FormCount-1 do
     ClearNoActivate(Screen.Forms[i]);
 end;
@@ -95,49 +103,73 @@ begin
     ApplyNoActivate(Form);
 end;
 
-procedure FocusLockMessageHook(var Message: TLMessage; var Handled: Boolean);
+function IsFocusLockOn: boolean;
 begin
-  if (Message.Msg=cWM_HOTKEY) and (Message.wParam=FocusLockHotkeyID) then
+  result:=NoFocusSteal;
+end;
+
+function FocusLockWndProc(h: HWND; msg: UINT; w: WPARAM; l: LPARAM): LRESULT; stdcall;
+begin
+  if (msg=WM_HOTKEY) and (w=FocusLockHotkeyID) then
   begin
-    if GetTickCount64-LastToggleTick>=FocusLockMinToggleInterval then
+    if (GetTickCount-LastToggleTick)>=FocusLockMinToggleInterval then
     begin
-      LastToggleTick:=GetTickCount64;
+      LastToggleTick:=GetTickCount;
       SetNoFocusSteal(not NoFocusSteal);
     end;
 
-    Handled:=true;
-  end
-  else
-  if MessageHookInstalled and Assigned(OldOnMessage) then
-    OldOnMessage(Message, Handled);
+    result:=0;
+    exit;
+  end;
+
+  result:=DefWindowProc(h, msg, w, l);
 end;
 
 procedure InitFocusLock;
+var wc: TWNDCLASS;
 begin
-  if HotkeyRegistered then exit;
+  if FocusLockWindow<>0 then exit;
 
   Helper:=TFocusLockHelper.Create;
   Screen.AddHandlerFormAdded(Helper.FormAdded);
 
-  HotkeyRegistered:=RegisterHotKey(Application.Handle, FocusLockHotkeyID, FocusLockModNoRepeat, FocusLockHotkey);
+  if not WindowClassRegistered then
+  begin
+    FillChar(wc, sizeof(wc), 0);
+    wc.lpfnWndProc:=@FocusLockWndProc;
+    wc.hInstance:=GetModuleHandle(nil);
+    wc.lpszClassName:=FocusLockWindowClassName;
 
-  OldOnMessage:=Application.OnMessage;
-  Application.OnMessage:=@FocusLockMessageHook;
-  MessageHookInstalled:=true;
+    if RegisterClass(wc)<>0 then
+      WindowClassRegistered:=true
+    else
+    if GetLastError()=ERROR_CLASS_ALREADY_EXISTS then
+      WindowClassRegistered:=true; //already present (registered by an earlier init); fine
+  end;
+
+  FocusLockWindow:=CreateWindowEx(0, FocusLockWindowClassName, 'CEFocusLock',
+                                  0, 0, 0, 0, 0, 0, 0, GetModuleHandle(nil), nil);
+
+  if FocusLockWindow<>0 then
+    HotkeyRegistered:=RegisterHotKey(FocusLockWindow, FocusLockHotkeyID, FocusLockModNoRepeat, FocusLockHotkey);
 end;
 
 procedure ShutdownFocusLock;
 begin
-  if MessageHookInstalled then
+  if FocusLockWindow<>0 then
   begin
-    Application.OnMessage:=OldOnMessage;
-    MessageHookInstalled:=false;
+    if HotkeyRegistered then
+      UnregisterHotKey(FocusLockWindow, FocusLockHotkeyID);
+
+    HotkeyRegistered:=false;
+    DestroyWindow(FocusLockWindow);
+    FocusLockWindow:=0;
   end;
 
-  if HotkeyRegistered then
+  if WindowClassRegistered then
   begin
-    UnregisterHotKey(Application.Handle, FocusLockHotkeyID);
-    HotkeyRegistered:=false;
+    UnregisterClass(FocusLockWindowClassName, GetModuleHandle(nil));
+    WindowClassRegistered:=false;
   end;
 
   if NoFocusSteal then
@@ -148,11 +180,6 @@ begin
     Screen.RemoveHandlerFormAdded(Helper.FormAdded);
     FreeAndNil(Helper);
   end;
-end;
-
-function IsFocusLockOn: boolean;
-begin
-  result:=NoFocusSteal;
 end;
 
 initialization

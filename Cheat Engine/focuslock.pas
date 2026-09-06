@@ -23,9 +23,12 @@ uses
 
 const
   FocusLockHotkeyID = $B0C0;
-  FocusLockHotkey = $7B; //VK_F12
-  FocusLockModNoRepeat = $4000; //MOD_NOREPEAT
-  FocusLockMinToggleInterval = 250; //ms debounce
+  FocusLockHotkey = $7B;                    //VK_F12
+  FocusLockModNoRepeat = $4000;             //MOD_NOREPEAT
+  FocusLockMinToggleInterval = 250;         //ms debounce
+  cWS_EX_NOACTIVATE = $08000000;
+  cGWL_EXSTYLE = -20;
+  cWM_HOTKEY = $0312;
 
 type
   TFocusLockHelper = class
@@ -46,9 +49,9 @@ var ex: longint;
 begin
   if (Form=nil) or (not Form.HandleAllocated) or (csDestroying in Form.ComponentState) then exit;
 
-  ex:=GetWindowLong(Form.Handle, GWL_EXSTYLE);
-  if (ex and WS_EX_NOACTIVATE)=0 then
-    SetWindowLong(Form.Handle, GWL_EXSTYLE, ex or WS_EX_NOACTIVATE);
+  ex:=GetWindowLong(Form.Handle, cGWL_EXSTYLE);
+  if (ex and cWS_EX_NOACTIVATE)=0 then
+    SetWindowLong(Form.Handle, cGWL_EXSTYLE, ex or cWS_EX_NOACTIVATE);
 end;
 
 procedure ClearNoActivate(Form: TCustomForm);
@@ -56,9 +59,9 @@ var ex: longint;
 begin
   if (Form=nil) or (not Form.HandleAllocated) or (csDestroying in Form.ComponentState) then exit;
 
-  ex:=GetWindowLong(Form.Handle, GWL_EXSTYLE);
-  if (ex and WS_EX_NOACTIVATE)<>0 then
-    SetWindowLong(Form.Handle, GWL_EXSTYLE, ex and (not WS_EX_NOACTIVATE));
+  ex:=GetWindowLong(Form.Handle, cGWL_EXSTYLE);
+  if (ex and cWS_EX_NOACTIVATE)<>0 then
+    SetWindowLong(Form.Handle, cGWL_EXSTYLE, ex and (not cWS_EX_NOACTIVATE));
 end;
 
 procedure ApplyToAllForms;
@@ -94,7 +97,7 @@ end;
 
 procedure FocusLockMessageHook(var Message: TLMessage; var Handled: Boolean);
 begin
-  if (Message.Msg=WM_HOTKEY) and (Message.wParam=FocusLockHotkeyID) then
+  if (Message.Msg=cWM_HOTKEY) and (Message.wParam=FocusLockHotkeyID) then
   begin
     if GetTickCount64-LastToggleTick>=FocusLockMinToggleInterval then
     begin
